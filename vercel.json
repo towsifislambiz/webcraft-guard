@@ -1,0 +1,15 @@
+﻿{
+  "rewrites": [
+    { "source": "/webcraft-guard.js", "destination": "/webcraft-guard.js" },
+    { "source": "/(.*)", "destination": "/" }
+  ],
+  "headers": [
+    {
+      "source": "/webcraft-guard.js",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ]
+}
