@@ -1,0 +1,20 @@
+﻿rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // WebCraft Guard - Projects & Kill-Switch Rules
+    match /projects/{projectId} {
+      // Allow read so client websites can check active/locked status in real-time
+      allow read: if true;
+      
+      // Allow agency dashboard to create, update (toggle kill-switch), and delete projects
+      allow write: if true;
+    }
+    
+    // Optional: Settings collection for agency branding
+    match /agency_settings/{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
