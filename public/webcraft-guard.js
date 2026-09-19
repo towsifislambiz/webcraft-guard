@@ -23,8 +23,43 @@
     return;
   }
 
-  // Check project status (LocalStorage sync or remote API)
+  var FIRESTORE_URL = 'https://firestore.googleapis.com/v1/projects/webcraft-guard--master/databases/(default)/documents/projects/' + projectId;
+
+  // Check project status (Firestore Cloud Sync with LocalStorage Fallback)
   function checkStatus() {
+    // 1. Primary: Real-time Cloud fetch from Firebase Firestore
+    try {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', FIRESTORE_URL, true);
+      xhr.setRequestHeader('Cache-Control', 'no-cache');
+      xhr.onload = function () {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            var doc = JSON.parse(xhr.responseText);
+            var f = doc.fields || {};
+            var remoteProject = {
+              id: projectId,
+              status: f.status && f.status.stringValue ? f.status.stringValue : 'ACTIVE',
+              clientName: f.clientName && f.clientName.stringValue ? f.clientName.stringValue : '',
+              domain: f.domain && f.domain.stringValue ? f.domain.stringValue : '',
+              dueAmount: f.dueAmount && (f.dueAmount.integerValue || f.dueAmount.stringValue) ? (f.dueAmount.integerValue || f.dueAmount.stringValue) : 0,
+              passkey: f.passkey && f.passkey.stringValue ? f.passkey.stringValue : '',
+              whatsappNumber: f.whatsappNumber && f.whatsappNumber.stringValue ? f.whatsappNumber.stringValue : '01629559653',
+              contactNumber: f.contactNumber && f.contactNumber.stringValue ? f.contactNumber.stringValue : '01629559653'
+            };
+
+            if (remoteProject.status === 'LOCKED') {
+              renderLockScreen(remoteProject);
+            } else {
+              removeLockScreen();
+            }
+          } catch (parseErr) {}
+        }
+      };
+      xhr.send();
+    } catch (e) {}
+
+    // 2. Fallback: LocalStorage check
     try {
       var raw = localStorage.getItem('webcraft_guard_projects_v1');
       if (raw) {

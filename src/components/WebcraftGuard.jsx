@@ -22,7 +22,33 @@ export default function WebcraftGuard({ projectId }) {
       return;
     }
 
-    const checkProject = () => {
+    const FIRESTORE_URL = `https://firestore.googleapis.com/v1/projects/webcraft-guard--master/databases/(default)/documents/projects/${projectId}`;
+
+    const checkProject = async () => {
+      try {
+        // 1. Primary: Real-time Cloud fetch from Firebase Firestore
+        const res = await fetch(FIRESTORE_URL, { cache: 'no-store' });
+        if (res.ok) {
+          const doc = await res.json();
+          const f = doc.fields || {};
+          const remote = {
+            id: projectId,
+            status: f.status?.stringValue || 'ACTIVE',
+            clientName: f.clientName?.stringValue || '',
+            domain: f.domain?.stringValue || '',
+            dueAmount: f.dueAmount?.integerValue || f.dueAmount?.stringValue || 0,
+            passkey: f.passkey?.stringValue || '',
+            whatsappNumber: f.whatsappNumber?.stringValue || '01629559653',
+            contactNumber: f.contactNumber?.stringValue || '01629559653',
+          };
+          setProject(remote);
+          return;
+        }
+      } catch (err) {
+        // network issue fallback to localStorage
+      }
+
+      // 2. Fallback: LocalStorage check
       try {
         const raw = localStorage.getItem('webcraft_guard_projects_v1');
         if (raw) {
@@ -33,15 +59,18 @@ export default function WebcraftGuard({ projectId }) {
       } catch (e) {}
     };
 
+    // Immediate check
     checkProject();
+
+    // Real-time 2-second cloud polling interval
+    const interval = setInterval(checkProject, 2000);
     window.addEventListener('webcraft_guard_update', checkProject);
     window.addEventListener('storage', checkProject);
-    const interval = setInterval(checkProject, 3000);
 
     return () => {
+      clearInterval(interval);
       window.removeEventListener('webcraft_guard_update', checkProject);
       window.removeEventListener('storage', checkProject);
-      clearInterval(interval);
     };
   }, [projectId]);
 
