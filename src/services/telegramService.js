@@ -8,7 +8,7 @@ const TELEGRAM_CONFIG_KEY = 'webcraft_guard_telegram_config_v1';
 // Default configuration (can be updated in Settings by the user)
 export const DEFAULT_TELEGRAM_CONFIG = {
   botToken: '8744311876:AAGCb-UExwxH71dEM47v2yvavnuFltpfnnQ', // @towsif_guard_alert_bot
-  chatId: '',   // e.g. from @userinfobot
+  chatId: '8115654358',   // Towsif Islam Chat ID
   autoRotateEnabled: true,
   rotationIntervalMinutes: 60, // 1 hour
 };
@@ -25,6 +25,7 @@ export const getTelegramConfig = () => {
       ...DEFAULT_TELEGRAM_CONFIG,
       ...parsed,
       botToken: parsed.botToken || DEFAULT_TELEGRAM_CONFIG.botToken,
+      chatId: parsed.chatId || DEFAULT_TELEGRAM_CONFIG.chatId,
     };
   } catch (e) {
     return DEFAULT_TELEGRAM_CONFIG;
