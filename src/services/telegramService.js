@@ -7,8 +7,8 @@ const TELEGRAM_CONFIG_KEY = 'webcraft_guard_telegram_config_v1';
 
 // Default configuration (can be updated in Settings by the user)
 export const DEFAULT_TELEGRAM_CONFIG = {
-  botToken: '', // e.g. 7123456789:AAFxxx... from @BotFather
-  chatId: '',   // e.g. 123456789 from @userinfobot
+  botToken: '8744311876:AAGCb-UExwxH71dEM47v2yvavnuFltpfnnQ', // @towsif_guard_alert_bot
+  chatId: '',   // e.g. from @userinfobot
   autoRotateEnabled: true,
   rotationIntervalMinutes: 60, // 1 hour
 };
@@ -20,7 +20,12 @@ export const getTelegramConfig = () => {
       localStorage.setItem(TELEGRAM_CONFIG_KEY, JSON.stringify(DEFAULT_TELEGRAM_CONFIG));
       return DEFAULT_TELEGRAM_CONFIG;
     }
-    return { ...DEFAULT_TELEGRAM_CONFIG, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT_TELEGRAM_CONFIG,
+      ...parsed,
+      botToken: parsed.botToken || DEFAULT_TELEGRAM_CONFIG.botToken,
+    };
   } catch (e) {
     return DEFAULT_TELEGRAM_CONFIG;
   }
