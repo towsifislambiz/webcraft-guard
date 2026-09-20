@@ -39,12 +39,16 @@ import {
 import {
   checkSessionValidity,
   clearAuthSession,
-  subscribeToCredentials
+  subscribeToCredentials,
+  rotateCredentialsAndNotify
 } from './services/authRotationService';
 
 export default function App() {
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState(() => checkAuthSession());
+  // Authentication State (Ensures session validity on initial load)
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const session = checkSessionValidity();
+    return session.valid;
+  });
   const [logoutReason, setLogoutReason] = useState(null);
   const [authVersion, setAuthVersion] = useState(null);
 
@@ -73,11 +77,11 @@ export default function App() {
     setTimeout(() => setToast(null), 3500);
   };
 
-  // 1-Hour Session Watcher & Remote Credential Rotation Detector
+  // 1-Hour Session Watcher & Instant Multi-Device Remote Rotation Detector
   useEffect(() => {
     if (!isAuthenticated) return;
 
-    const checkSession = () => {
+    const checkSession = async () => {
       const validity = checkSessionValidity(authVersion);
       if (!validity.valid) {
         setIsAuthenticated(false);
@@ -85,15 +89,24 @@ export default function App() {
           validity.reason === 'EXPIRED_1_HOUR' ? 'EXPIRED_1_HOUR' : 'CREDENTIALS_ROTATED'
         );
         showToast('🔒 ১ ঘণ্টার সেশন সমাপ্ত হয়েছে। পুনরায় লগইন করুন।', 'error');
+        if (validity.reason === 'EXPIRED_1_HOUR') {
+          await rotateCredentialsAndNotify(false);
+        }
       }
     };
 
     checkSession();
-    const interval = setInterval(checkSession, 10000); // Check every 10 seconds
+    const interval = setInterval(checkSession, 5000); // Check every 5 seconds
 
     const unsubCreds = subscribeToCredentials((remoteCreds) => {
       if (remoteCreds && remoteCreds.version) {
         setAuthVersion(remoteCreds.version);
+        // Instant real-time multi-device logout
+        const validity = checkSessionValidity(remoteCreds.version);
+        if (!validity.valid) {
+          setIsAuthenticated(false);
+          setLogoutReason('CREDENTIALS_ROTATED');
+        }
       }
     });
 
