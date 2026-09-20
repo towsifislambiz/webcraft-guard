@@ -106,12 +106,10 @@ export default function LoginPage({ onLoginSuccess, logoutReason = null }) {
       setActiveCreds(res.credentials);
       setIsSendingTelegram(false);
 
-      if (tgConfig.botToken && tgConfig.chatId) {
+      if (res && res.credentials) {
         setSuccessMsg('✅ আপনার টেলিগ্রামে নতুন ইউজারনেম ও পাসওয়ার্ড সফলভাবে পাঠানো হয়েছে!');
-      } else {
-        setSuccessMsg(`✅ নতুন পাসওয়ার্ড জেনারেট হয়েছে: ${res.credentials.password} (টেলিগ্রাম সেটআপ করুন)`);
       }
-      setTimeout(() => setSuccessMsg(''), 6000);
+      setTimeout(() => setSuccessMsg(''), 5000);
     } catch (err) {
       setIsSendingTelegram(false);
       setError('টেলিগ্রামে মেসেজ পাঠানো যায়নি। টেলিগ্রাম বট কনফিগারেশন চেক করুন।');
@@ -157,7 +155,7 @@ export default function LoginPage({ onLoginSuccess, logoutReason = null }) {
           </div>
           
           <p className="text-xs text-slate-400 font-medium">
-            ১-ঘণ্টার অটো-রোটেশন ও টেলিগ্রাম সিকিউরড কনসোল
+            অ্যাডমিন সিকিউরিটি কনসোল
           </p>
         </div>
 
@@ -190,12 +188,9 @@ export default function LoginPage({ onLoginSuccess, logoutReason = null }) {
           
           {/* Username */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <User className="w-3.5 h-3.5 text-cyan-400" />
-                <span>ইউজারনেম (Username)</span>
-              </span>
-              <span className="text-[10px] text-cyan-400 font-mono">টেলিগ্রামে পাঠানো নাম</span>
+            <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-cyan-400" />
+              <span>ইউজারনেম (Username)</span>
             </label>
             <div className="relative">
               <input
@@ -203,7 +198,7 @@ export default function LoginPage({ onLoginSuccess, logoutReason = null }) {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="যেমন: towsif বা টেলিগ্রামের ইউজার"
+                placeholder="ইউজারনেম লিখুন"
                 className="w-full bg-[#070B18] border border-slate-700/80 focus:border-cyan-400 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 font-medium focus:outline-none focus:ring-1 focus:ring-cyan-400/50 transition-all"
               />
             </div>
@@ -211,17 +206,9 @@ export default function LoginPage({ onLoginSuccess, logoutReason = null }) {
 
           {/* Password */}
           <div>
-            <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-rose-400" />
-                <span>পাসওয়ার্ড (Password)</span>
-              </span>
-              {remainingTimeStr && (
-                <span className="text-[10px] text-amber-300 font-mono flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  <span>মেয়াদ: {remainingTimeStr}</span>
-                </span>
-              )}
+            <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
+              <Lock className="w-3.5 h-3.5 text-rose-400" />
+              <span>পাসওয়ার্ড (Password)</span>
             </label>
             <div className="relative">
               <input
@@ -229,7 +216,7 @@ export default function LoginPage({ onLoginSuccess, logoutReason = null }) {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="টেলিগ্রামের ১-ঘণ্টার পাসওয়ার্ড লিখুন"
+                placeholder="পাসওয়ার্ড লিখুন"
                 className="w-full bg-[#070B18] border border-slate-700/80 focus:border-cyan-400 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 font-medium focus:outline-none focus:ring-1 focus:ring-cyan-400/50 transition-all pr-10"
               />
               <button
@@ -272,13 +259,8 @@ export default function LoginPage({ onLoginSuccess, logoutReason = null }) {
             ) : (
               <Send className="w-4 h-4 text-sky-400" />
             )}
-            <span>🔄 টেলিগ্রামে নতুন ইউজার ও পাসওয়ার্ড পাঠান</span>
+            <span>🔄 টেলিগ্রামে নতুন পাসওয়ার্ড পাঠান</span>
           </button>
-
-          {/* Master Key Hint */}
-          <p className="text-[10px] text-slate-500 text-center mt-3 font-medium">
-            জরুরি মাস্টার লগইন: <strong>towsif</strong> / <strong>webcraft2026</strong>
-          </p>
         </div>
 
       </div>

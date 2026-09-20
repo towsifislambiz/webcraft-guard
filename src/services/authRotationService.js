@@ -13,7 +13,7 @@ const SESSION_VERSION_KEY = 'webcraft_guard_session_version';
 const LOCAL_CREDENTIALS_KEY = 'webcraft_guard_rotating_creds_v1';
 
 export const ROTATION_INTERVAL_MS = 60 * 60 * 1000; // 1 Hour in milliseconds
-export const FIRESTORE_AUTH_DOC = 'system/admin_auth';
+export const FIRESTORE_AUTH_DOC = 'agency_settings/admin_auth';
 
 // Helper: Generate secure dynamic password
 export const generateDynamicPassword = () => {
@@ -75,7 +75,7 @@ export const saveLocalCredentials = (creds) => {
  */
 export const getActiveCredentials = async () => {
   try {
-    const docRef = doc(db, 'system', 'admin_auth');
+    const docRef = doc(db, 'agency_settings', 'admin_auth');
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       const data = docSnap.data();
@@ -120,7 +120,7 @@ export const rotateCredentialsAndNotify = async (force = false) => {
 
   // 2. Save to Firestore Cloud
   try {
-    const docRef = doc(db, 'system', 'admin_auth');
+    const docRef = doc(db, 'agency_settings', 'admin_auth');
     await setDoc(docRef, newAuthState, { merge: true });
   } catch (err) {
     console.warn('[Auth Rotation] Cloud sync warning:', err.message);
@@ -223,7 +223,7 @@ export const clearAuthSession = () => {
  */
 export const subscribeToCredentials = (onUpdate) => {
   try {
-    const docRef = doc(db, 'system', 'admin_auth');
+    const docRef = doc(db, 'agency_settings', 'admin_auth');
     return onSnapshot(docRef, (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
