@@ -11,10 +11,27 @@ import {
   MessageSquare,
   AlertTriangle,
   Eye,
+  EyeOff,
   Sparkles,
-  Check
+  Check,
+  Send,
+  RefreshCw,
+  Key,
+  Clock,
+  ExternalLink,
+  Bot,
+  Info,
+  Radio
 } from 'lucide-react';
 import { syncProjectToCloud } from '../../services/storageService';
+import {
+  getTelegramConfig,
+  saveTelegramConfig,
+  testTelegramConnection
+} from '../../services/telegramService';
+import {
+  rotateCredentialsAndNotify
+} from '../../services/authRotationService';
 
 export default function SettingsView({
   settings = {},
@@ -35,6 +52,83 @@ export default function SettingsView({
   );
 
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  // Telegram Bot Configuration State
+  const initialTgConfig = getTelegramConfig();
+  const [botToken, setBotToken] = useState(initialTgConfig.botToken || '');
+  const [chatId, setChatId] = useState(initialTgConfig.chatId || '');
+  const [showBotToken, setShowBotToken] = useState(false);
+  const [isTestingTg, setIsTestingTg] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
+  const [tgTestStatus, setTgTestStatus] = useState(null);
+  const [tgSaveSuccess, setTgSaveSuccess] = useState(false);
+
+  const isTgConfigured = Boolean(botToken.trim() && chatId.trim());
+
+  // Save Telegram Config
+  const handleSaveTelegram = (e) => {
+    if (e) e.preventDefault();
+    saveTelegramConfig({
+      botToken: botToken.trim(),
+      chatId: chatId.trim(),
+      autoRotateEnabled: true,
+      rotationIntervalMinutes: 60,
+    });
+    setTgSaveSuccess(true);
+    setTimeout(() => setTgSaveSuccess(false), 2500);
+    if (showToast) showToast('✅ টেলিগ্রাম বট কনফিগারেশন সংরক্ষিত হয়েছে!', 'success');
+  };
+
+  // Test Telegram Connection
+  const handleTestTelegram = async () => {
+    if (!botToken.trim() || !chatId.trim()) {
+      if (showToast) showToast('⚠️ অনুগ্রহ করে প্রথমে Bot Token এবং Chat ID লিখুন।', 'error');
+      return;
+    }
+    setIsTestingTg(true);
+    setTgTestStatus(null);
+    try {
+      const res = await testTelegramConnection(botToken.trim(), chatId.trim());
+      if (res.success) {
+        setTgTestStatus({ success: true, msg: '✅ টেলিগ্রামে টেস্ট মেসেজ সফলভাবে পৌঁছেছে!' });
+        if (showToast) showToast('✅ টেলিগ্রামে টেস্ট মেসেজ সফলভাবে পাঠানো হয়েছে!', 'success');
+      } else {
+        setTgTestStatus({ success: false, msg: `❌ এরর: ${res.error}` });
+        if (showToast) showToast(`❌ এরর: ${res.error}`, 'error');
+      }
+    } catch (err) {
+      setTgTestStatus({ success: false, msg: `❌ এরর: ${err.message}` });
+    } finally {
+      setIsTestingTg(false);
+    }
+  };
+
+  // Force Immediate Rotation and Dispatch to Telegram
+  const handleForceRotate = async () => {
+    if (
+      !window.confirm(
+        'আপনি কি এখনই নতুন ইউজারনেম ও পাসওয়ার্ড জেনারেট করে টেলিগ্রামে পাঠাতে চান? এটি করলে বর্তমান সেশন এবং সকল ডিভাইসের ক্রেডেনশিয়াল আপডেট হয়ে যাবে।'
+      )
+    ) {
+      return;
+    }
+    setIsRotating(true);
+    try {
+      const res = await rotateCredentialsAndNotify(true);
+      if (res && res.credentials) {
+        if (showToast) {
+          showToast(
+            `🔄 নতুন ইউজার: ${res.credentials.username} ও পাসওয়ার্ড টেলিগ্রামে পাঠানো হয়েছে!`,
+            'success'
+          );
+        }
+      }
+    } catch (err) {
+      if (showToast) showToast(`❌ রোটেশন ব্যর্থ: ${err.message}`, 'error');
+    } finally {
+      setIsRotating(false);
+    }
+  };
 
   const handleSave = (e) => {
     e.preventDefault();
@@ -96,6 +190,173 @@ export default function SettingsView({
             <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
               ক্লায়েন্ট লক স্ক্রিনের বার্তা, এজেন্সি ব্র্যান্ডিং ও ইমার্জেন্সি মাস্টার কিল-সুইচ
             </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Telegram Security Bot & 1-Hour Dynamic Rotation Section */}
+      <div className="rounded-3xl bg-[#091024] border border-cyan-500/30 p-5 sm:p-6 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+              <Bot className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                  টেলিগ্রাম সিকিউরিটি বট ও ১-ঘণ্টা অটো ক্রেডেনশিয়াল রোটেশন
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                প্রতি ১ ঘণ্টা পর পর ইউজারনেম ও পাসওয়ার্ড স্বয়ংক্রিয়ভাবে পরিবর্তিত হবে এবং সরাসরি আপনার টেলিগ্রামে লাইভ মেসেজ যাবে।
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-auto">
+            <span
+              className={`px-3 py-1 rounded-full text-[11px] font-extrabold border flex items-center gap-1.5 ${
+                isTgConfigured
+                  ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
+                  : 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isTgConfigured ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
+                }`}
+              />
+              <span>{isTgConfigured ? 'টেলিগ্রাম সক্রিয়' : 'কনফিগারেশন প্রয়োজন'}</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Body Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-5">
+          {/* Left 7 cols: Bot Token & Chat ID Inputs */}
+          <div className="lg:col-span-7 space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Key className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>টেলিগ্রাম বট টোকেন (Telegram Bot Token)</span>
+                </span>
+                <span className="text-[10px] text-cyan-400/80 font-mono">@BotFather থেকে প্রাপ্ত</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showBotToken ? 'text' : 'password'}
+                  value={botToken}
+                  onChange={(e) => setBotToken(e.target.value)}
+                  placeholder="যেমন: 7123456789:AAFxxx... (BotFather Token)"
+                  className="w-full px-4 py-2.5 pr-11 rounded-xl bg-[#060B18] border border-slate-800 focus:border-cyan-500 text-xs text-white outline-none font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowBotToken(!showBotToken)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-cyan-400"
+                >
+                  {showBotToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Send className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>টেলিগ্রাম চ্যাট আইডি (Telegram Chat ID)</span>
+                </span>
+                <span className="text-[10px] text-cyan-400/80 font-mono">@userinfobot থেকে প্রাপ্ত</span>
+              </label>
+              <input
+                type="text"
+                value={chatId}
+                onChange={(e) => setChatId(e.target.value)}
+                placeholder="যেমন: 1234567890 (আপনার টেলিগ্রাম আইডি)"
+                className="w-full px-4 py-2.5 rounded-xl bg-[#060B18] border border-slate-800 focus:border-cyan-500 text-xs text-white outline-none font-mono"
+              />
+            </div>
+
+            <div className="p-3 rounded-xl bg-cyan-950/20 border border-cyan-500/20 flex items-start gap-2.5 text-[11px] text-slate-300 leading-relaxed">
+              <Info className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+              <span>
+                <b>সেটআপ গাইড:</b> ১. টেলিগ্রামে <code className="text-cyan-300">@BotFather</code>-এ গিয়ে <code className="text-cyan-300">/newbot</code> দিয়ে একটি বট তৈরি করে API Token নিন। ২. টেলিগ্রামে আপনার নতুন বটের চ্যাটে গিয়ে একবার <b>/start</b> লিখুন। ৩. এরপর <code className="text-cyan-300">@userinfobot</code>-এ মেসেজ দিয়ে আপনার নিজের <b>Id</b> সংগ্রহ করে এখানে বসিয়ে সেভ করুন।
+              </span>
+            </div>
+
+            {/* Save Button */}
+            <button
+              type="button"
+              onClick={handleSaveTelegram}
+              className="w-full py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-cyan-950/50 active:scale-[0.98]"
+            >
+              {tgSaveSuccess ? <Check className="w-4 h-4 text-emerald-300" /> : <Save className="w-4 h-4" />}
+              <span>{tgSaveSuccess ? 'টেলিগ্রাম কনফিগারেশন সংরক্ষিত হয়েছে!' : 'টেলিগ্রাম সেটিংস সংরক্ষণ করুন'}</span>
+            </button>
+          </div>
+
+          {/* Right 5 cols: Actions & Security Rules */}
+          <div className="lg:col-span-5 space-y-3.5 flex flex-col justify-between">
+            <div className="p-4 rounded-2xl bg-[#060B18] border border-slate-800/80 space-y-3">
+              <div className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-amber-400" />
+                <span>অটোমেশন ও সিকিউরিটি রুলস:</span>
+              </div>
+              <ul className="text-[11px] text-slate-400 space-y-2">
+                <li className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><b>১-ঘণ্টা সেশন লিমিট:</b> যেকোনো ব্রাউজারে লগইন করার ঠিক ৬০ মিনিট পর স্বয়ংক্রিয়ভাবে লগআউট হয়ে যাবে।</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><b>অটো ক্রেডেনশিয়াল রোটেশন:</b> প্রতি ১ ঘণ্টা পর পর নতুন ইউজারনেম ও পাসওয়ার্ড স্বয়ংক্রিয়ভাবে তৈরি হবে।</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <span><b>ইনস্ট্যান্ট টেলিগ্রাম অ্যালার্ট:</b> প্রতি রোটেশনের সাথে সাথে আপনার টেলিগ্রামে মেসেজ পাঠানো হবে।</span>
+                </li>
+              </ul>
+            </div>
+
+            {/* Test Connection Button */}
+            <div className="space-y-2 pt-1">
+              <button
+                type="button"
+                onClick={handleTestTelegram}
+                disabled={isTestingTg}
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-cyan-300 font-bold text-xs flex items-center justify-center gap-2 transition-all border border-cyan-500/30 active:scale-95"
+              >
+                <Send className={`w-3.5 h-3.5 ${isTestingTg ? 'animate-spin' : ''}`} />
+                <span>{isTestingTg ? 'পরীক্ষা করা হচ্ছে...' : 'টেলিগ্রাম টেস্ট মেসেজ পাঠান'}</span>
+              </button>
+
+              {tgTestStatus && (
+                <div
+                  className={`text-[11px] font-bold p-2.5 rounded-xl border text-center ${
+                    tgTestStatus.success
+                      ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-300'
+                      : 'bg-rose-950/40 border-rose-500/40 text-rose-300'
+                  }`}
+                >
+                  {tgTestStatus.msg}
+                </div>
+              )}
+
+              {/* Force Rotate Button */}
+              <button
+                type="button"
+                onClick={handleForceRotate}
+                disabled={isRotating}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 to-cyan-600 hover:from-indigo-500 hover:to-cyan-500 disabled:opacity-50 text-white font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-md shadow-indigo-950/50 active:scale-95"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRotating ? 'animate-spin' : ''}`} />
+                <span>{isRotating ? 'রোটেশন হচ্ছে...' : 'এখনই নতুন পাসওয়ার্ড তৈরি ও টেলিগ্রামে পাঠান'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

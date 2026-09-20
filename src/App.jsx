@@ -36,9 +36,17 @@ import {
   Info
 } from 'lucide-react';
 
+import {
+  checkSessionValidity,
+  clearAuthSession,
+  subscribeToCredentials
+} from './services/authRotationService';
+
 export default function App() {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(() => checkAuthSession());
+  const [logoutReason, setLogoutReason] = useState(null);
+  const [authVersion, setAuthVersion] = useState(null);
 
   // Active View Tab ('dashboard' | 'websites' | 'payments' | 'settings' | 'support')
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -65,6 +73,36 @@ export default function App() {
     setTimeout(() => setToast(null), 3500);
   };
 
+  // 1-Hour Session Watcher & Remote Credential Rotation Detector
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const checkSession = () => {
+      const validity = checkSessionValidity(authVersion);
+      if (!validity.valid) {
+        setIsAuthenticated(false);
+        setLogoutReason(
+          validity.reason === 'EXPIRED_1_HOUR' ? 'EXPIRED_1_HOUR' : 'CREDENTIALS_ROTATED'
+        );
+        showToast('🔒 ১ ঘণ্টার সেশন সমাপ্ত হয়েছে। পুনরায় লগইন করুন।', 'error');
+      }
+    };
+
+    checkSession();
+    const interval = setInterval(checkSession, 10000); // Check every 10 seconds
+
+    const unsubCreds = subscribeToCredentials((remoteCreds) => {
+      if (remoteCreds && remoteCreds.version) {
+        setAuthVersion(remoteCreds.version);
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubCreds();
+    };
+  }, [isAuthenticated, authVersion]);
+
   // Real-time Firebase Cloud Listener
   useEffect(() => {
     const unsubscribe = subscribeToFirebaseProjects((remoteProjects) => {
@@ -82,6 +120,7 @@ export default function App() {
 
   // Handle Logout
   const handleLogout = () => {
+    clearAuthSession();
     setAuthSession(false);
     setIsAuthenticated(false);
     showToast('সফলভাবে লগআউট হয়েছে!', 'info');
@@ -180,7 +219,15 @@ export default function App() {
 
   // If Not Logged In, Render Cyberpunk Login Screen
   if (!isAuthenticated) {
-    return <LoginPage onLoginSuccess={() => setIsAuthenticated(true)} />;
+    return (
+      <LoginPage
+        onLoginSuccess={() => {
+          setIsAuthenticated(true);
+          setLogoutReason(null);
+        }}
+        logoutReason={logoutReason}
+      />
+    );
   }
 
   return (
