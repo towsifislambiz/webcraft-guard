@@ -49,6 +49,22 @@ export const INITIAL_PROJECTS = [
     createdAt: Date.now() - 86400000 * 2,
     updatedAt: Date.now(),
   },
+  {
+    id: 'wg_kormokerbari',
+    clientName: 'Kormoker Bari (কর্মকার বাড়ি)',
+    domain: 'kormokerbari.com',
+    planType: 'E-commerce',
+    monthlyPrice: 2000,
+    status: 'ACTIVE', // ACTIVE | LOCKED
+    passkey: 'WG-KB26-PASS',
+    totalBill: 7500,
+    dueAmount: 0,
+    whatsappNumber: '01629559653',
+    contactNumber: '01629559653',
+    notes: 'ঐতিহ্যবাহী কামারশালা ই-কমার্স প্ল্যাটফর্ম (Kormoker Bari)',
+    createdAt: Date.now() - 86400000,
+    updatedAt: Date.now(),
+  },
 ];
 
 export const getStoredProjects = () => {
