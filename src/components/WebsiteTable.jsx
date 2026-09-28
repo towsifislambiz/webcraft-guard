@@ -17,13 +17,17 @@ import {
   Layers,
   Sparkles,
   Copy,
-  Check
+  Check,
+  Edit3,
+  Clock,
+  DollarSign
 } from 'lucide-react';
 
 export default function WebsiteTable({
   projects = [],
   onToggleStatus,
   onOpenDetails,
+  onOpenEdit,
   onOpenEmbed,
   onDeleteProject,
   onOpenAdd,
@@ -33,6 +37,20 @@ export default function WebsiteTable({
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [openMenuId, setOpenMenuId] = useState(null);
   const [copiedKeyId, setCopiedKeyId] = useState(null);
+
+  const getDeadlineInfo = (p) => {
+    if (!p.autoLockEnabled || Number(p.dueAmount) <= 0 || !p.autoLockDate) return null;
+    const deadline = new Date(p.autoLockDate).getTime();
+    if (isNaN(deadline)) return null;
+    const diff = deadline - Date.now();
+    if (diff <= 0) return { label: 'মেয়াদ শেষ', expired: true };
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    if (days > 0) return { label: `${days} দিন বাকি`, expired: false };
+    if (hours > 0) return { label: `${hours} ঘণ্টা বাকি`, expired: false };
+    const mins = Math.max(1, Math.floor(diff / (1000 * 60)));
+    return { label: `${mins} মিনিট বাকি`, expired: false };
+  };
 
   // Filter projects
   const filtered = projects.filter((p) => {
@@ -117,7 +135,7 @@ export default function WebsiteTable({
             <tr>
               <th className="py-3.5 px-5">ওয়েবসাইট</th>
               <th className="py-3.5 px-4">ডোমেইন</th>
-              <th className="py-3.5 px-4">প্যাকেজ</th>
+              <th className="py-3.5 px-4">প্যাকেজ ও বকেয়া</th>
               <th className="py-3.5 px-4 text-center">স্ট্যাটাস</th>
               <th className="py-3.5 px-5 text-right">অ্যাকশন</th>
             </tr>
@@ -134,6 +152,7 @@ export default function WebsiteTable({
               filtered.map((project) => {
                 const isLocked = project.status === 'LOCKED';
                 const isMenuOpen = openMenuId === project.id;
+                const deadlineInfo = getDeadlineInfo(project);
 
                 return (
                   <tr
@@ -183,6 +202,18 @@ export default function WebsiteTable({
                               </button>
                             </div>
                           )}
+
+                          {/* Auto-Lock Deadline Timer Badge */}
+                          {deadlineInfo && (
+                            <div className={`mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-bold border ${
+                              deadlineInfo.expired
+                                ? 'bg-rose-500/20 border-rose-500/50 text-rose-300'
+                                : 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                            }`}>
+                              <Clock className="w-3 h-3" />
+                              <span>অটো-লক: {deadlineInfo.label}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -200,13 +231,24 @@ export default function WebsiteTable({
                       </a>
                     </td>
 
-                    {/* Package */}
+                    {/* Package & Due Bill */}
                     <td className="py-3.5 px-4">
-                      <span className="inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
-                        {project.planType || 'Standard'}
-                      </span>
-                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                        ৳{Number(project.monthlyPrice || 2500).toLocaleString()} / মাস
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                          {project.planType || 'Standard'}
+                        </span>
+                        {Number(project.dueAmount) > 0 ? (
+                          <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40 font-mono">
+                            বকেয়া: ৳{Number(project.dueAmount).toLocaleString()}
+                          </span>
+                        ) : (
+                          <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                            পরিশোধিত
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-mono mt-1">
+                        মোট: ৳{Number(project.totalBill || project.monthlyPrice || 0).toLocaleString()}
                       </div>
                     </td>
 
@@ -238,8 +280,18 @@ export default function WebsiteTable({
                           className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs transition-colors"
                           title="বিস্তারিত তথ্য"
                         >
-                          <Info className="w-3.5 h-3.5 text-cyan-400" />
+                          <Info className="w-3.5 h-3.5 text-slate-400" />
                           <span className="hidden sm:inline">ডিটেইলস</span>
+                        </button>
+
+                        {/* Edit Button */}
+                        <button
+                          onClick={() => onOpenEdit && onOpenEdit(project)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 font-bold text-xs transition-colors"
+                          title="পেমেন্ট ও টাইমার এডিট করুন"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">এডিট</span>
                         </button>
 
                         {/* Kill Switch Toggle Button (Matches Mockup) */}
@@ -275,13 +327,24 @@ export default function WebsiteTable({
 
                           {/* Dropdown Menu */}
                           {isMenuOpen && (
-                            <div className="absolute right-0 mt-2 w-48 bg-[#0C1222] border border-slate-700 rounded-2xl shadow-2xl p-1.5 z-30 text-left animate-in fade-in duration-150">
+                            <div className="absolute right-0 mt-2 w-52 bg-[#0C1222] border border-slate-700 rounded-2xl shadow-2xl p-1.5 z-30 text-left animate-in fade-in duration-150">
+                              <button
+                                onClick={() => {
+                                  onOpenEdit && onOpenEdit(project);
+                                  setOpenMenuId(null);
+                                }}
+                                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-cyan-300 hover:bg-slate-800 transition-colors"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 text-cyan-400" />
+                                <span>এডিট ও পেমেন্ট আপডেট</span>
+                              </button>
+
                               <button
                                 onClick={() => {
                                   onOpenEmbed(project);
                                   setOpenMenuId(null);
                                 }}
-                                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-cyan-300 hover:bg-slate-800 transition-colors"
+                                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-slate-300 hover:bg-slate-800 transition-colors"
                               >
                                 <Code className="w-3.5 h-3.5 text-cyan-400" />
                                 <span>এম্বেড কোড কপি</span>

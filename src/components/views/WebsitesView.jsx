@@ -17,13 +17,16 @@ import {
   ShieldCheck,
   ShieldAlert,
   Sparkles,
-  Filter
+  Filter,
+  Edit3,
+  Clock
 } from 'lucide-react';
 
 export default function WebsitesView({
   projects = [],
   onToggleStatus,
   onOpenDetails,
+  onOpenEdit,
   onOpenEmbed,
   onDeleteProject,
   onOpenAdd
@@ -31,6 +34,20 @@ export default function WebsitesView({
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL | ACTIVE | LOCKED | DUE
   const [copiedKeyId, setCopiedKeyId] = useState(null);
+
+  const getDeadlineInfo = (p) => {
+    if (!p.autoLockEnabled || Number(p.dueAmount) <= 0 || !p.autoLockDate) return null;
+    const deadline = new Date(p.autoLockDate).getTime();
+    if (isNaN(deadline)) return null;
+    const diff = deadline - Date.now();
+    if (diff <= 0) return { label: 'মেয়াদ শেষ', expired: true };
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    if (days > 0) return { label: `${days} দিন বাকি`, expired: false };
+    if (hours > 0) return { label: `${hours} ঘণ্টা বাকি`, expired: false };
+    const mins = Math.max(1, Math.floor(diff / (1000 * 60)));
+    return { label: `${mins} মিনিট বাকি`, expired: false };
+  };
 
   // Filter projects
   const filtered = projects.filter((p) => {
@@ -201,6 +218,7 @@ export default function WebsitesView({
           const isLocked = project.status === 'LOCKED';
           const isCopied = copiedKeyId === project.id;
           const waNum = project.whatsappNumber || '01629559653';
+          const deadlineInfo = getDeadlineInfo(project);
 
           return (
             <div
@@ -266,6 +284,14 @@ export default function WebsitesView({
                     <span>{isCopied ? 'কপি হয়েছে!' : project.passkey}</span>
                   </button>
                 </div>
+                {deadlineInfo && (
+                  <div className={`col-span-2 pt-1.5 border-t border-slate-800/60 flex items-center gap-1.5 text-[10px] font-bold ${
+                    deadlineInfo.expired ? 'text-rose-400' : 'text-amber-300'
+                  }`}>
+                    <Clock className="w-3 h-3 shrink-0" />
+                    <span>অটো-লক টাইমার: {deadlineInfo.label}</span>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
@@ -299,6 +325,15 @@ export default function WebsitesView({
                   title="বিস্তারিত"
                 >
                   <Info className="w-4 h-4" />
+                </button>
+
+                {/* Edit Button */}
+                <button
+                  onClick={() => onOpenEdit && onOpenEdit(project)}
+                  className="p-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 transition-colors"
+                  title="এডিট ও পেমেন্ট"
+                >
+                  <Edit3 className="w-4 h-4" />
                 </button>
 
                 {/* Embed Script */}
@@ -354,6 +389,7 @@ export default function WebsitesView({
                 const isLocked = project.status === 'LOCKED';
                 const isCopied = copiedKeyId === project.id;
                 const waNum = project.whatsappNumber || '01629559653';
+                const deadlineInfo = getDeadlineInfo(project);
 
                 return (
                   <tr
@@ -401,10 +437,20 @@ export default function WebsitesView({
                       </button>
                     </td>
 
-                    {/* Due Bill */}
+                    {/* Due Bill & Timer */}
                     <td className="py-4 px-4 font-mono font-bold">
                       {(project.dueAmount || 0) > 0 ? (
-                        <span className="text-rose-400">৳{(project.dueAmount || 0).toLocaleString()}</span>
+                        <div>
+                          <span className="text-rose-400">৳{(project.dueAmount || 0).toLocaleString()}</span>
+                          {deadlineInfo && (
+                            <div className={`mt-1 flex items-center gap-1 text-[10px] font-bold ${
+                              deadlineInfo.expired ? 'text-rose-400' : 'text-amber-300'
+                            }`}>
+                              <Clock className="w-3 h-3" />
+                              <span>{deadlineInfo.label}</span>
+                            </div>
+                          )}
+                        </div>
                       ) : (
                         <span className="text-emerald-400">পরিশোধিত</span>
                       )}
@@ -465,6 +511,15 @@ export default function WebsitesView({
                           title="বিস্তারিত"
                         >
                           <Info className="w-4 h-4" />
+                        </button>
+
+                        {/* Edit Modal Opener */}
+                        <button
+                          onClick={() => onOpenEdit && onOpenEdit(project)}
+                          className="p-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 transition-colors"
+                          title="এডিট ও পেমেন্ট"
+                        >
+                          <Edit3 className="w-4 h-4" />
                         </button>
 
                         {/* WhatsApp */}

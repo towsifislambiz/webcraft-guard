@@ -9,6 +9,7 @@ export default function DashboardView({
   projects = [],
   onToggleStatus,
   onOpenDetails,
+  onOpenEdit,
   onOpenEmbed,
   onDeleteProject,
   onOpenAdd,
@@ -31,6 +32,7 @@ export default function DashboardView({
             projects={projects}
             onToggleStatus={onToggleStatus}
             onOpenDetails={onOpenDetails}
+            onOpenEdit={onOpenEdit}
             onOpenEmbed={onOpenEmbed}
             onDeleteProject={onDeleteProject}
             onOpenAdd={onOpenAdd}

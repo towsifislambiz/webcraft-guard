@@ -12,6 +12,7 @@ import SupportView from './components/views/SupportView';
 
 // Modals
 import FastAddWebsiteModal from './components/FastAddWebsiteModal';
+import EditWebsiteModal from './components/EditWebsiteModal';
 import WebsiteDetailsModal from './components/WebsiteDetailsModal';
 import EmbedCodeModal from './components/EmbedCodeModal';
 import LiveSimulatorModal from './components/LiveSimulatorModal';
@@ -66,6 +67,7 @@ export default function App() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedDetailsProject, setSelectedDetailsProject] = useState(null);
+  const [selectedEditProject, setSelectedEditProject] = useState(null);
   const [selectedEmbedProject, setSelectedEmbedProject] = useState(null);
   const [selectedSimulatorProject, setSelectedSimulatorProject] = useState(null);
 
@@ -202,12 +204,57 @@ export default function App() {
     showToast(`🎉 ${newProj.clientName} সফলভাবে যুক্ত করা হয়েছে!`, 'success');
   };
 
-  // Handle Single Project Update (e.g. from Payments)
+  // Handle Single Project Update (e.g. from Edit Modal or Payments)
   const handleUpdateProject = (updatedProject) => {
     setProjects((prev) =>
       prev.map((p) => (p.id === updatedProject.id ? updatedProject : p))
     );
+    syncProjectToCloud(updatedProject);
+    showToast(`✅ ${updatedProject.clientName} আপডেট ও ক্লাউডে সংরক্ষিত হয়েছে!`, 'success');
   };
+
+  // ─── Automated Auto-Lock on Deadline Watcher (Runs every 3 seconds) ─────────
+  useEffect(() => {
+    const checkDeadlines = () => {
+      const now = Date.now();
+
+      setProjects((prev) => {
+        let hasChanges = false;
+        const next = prev.map((p) => {
+          if (
+            p.autoLockEnabled &&
+            Number(p.dueAmount) > 0 &&
+            p.autoLockDate &&
+            p.status !== 'LOCKED'
+          ) {
+            const deadline = new Date(p.autoLockDate).getTime();
+            if (!isNaN(deadline) && now >= deadline) {
+              hasChanges = true;
+              const newPasskey = p.passkey || generatePasskey();
+              const lockedProject = {
+                ...p,
+                status: 'LOCKED',
+                passkey: newPasskey,
+                updatedAt: now,
+              };
+              syncProjectToCloud(lockedProject);
+              showToast(
+                `⏰ ডেডলাইন অতিক্রান্ত! বকেয়া থাকায় ${p.clientName} স্বয়ংক্রিয়ভাবে লক করা হয়েছে!`,
+                'error'
+              );
+              return lockedProject;
+            }
+          }
+          return p;
+        });
+
+        return hasChanges ? next : prev;
+      });
+    };
+
+    const timer = setInterval(checkDeadlines, 3000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Handle Bulk Update Projects (e.g. Master Lock / Unlock All)
   const handleBulkUpdateProjects = (updatedProjectsList) => {
@@ -300,6 +347,7 @@ export default function App() {
               projects={projects}
               onToggleStatus={handleToggleStatus}
               onOpenDetails={(p) => setSelectedDetailsProject(p)}
+              onOpenEdit={(p) => setSelectedEditProject(p)}
               onOpenEmbed={(p) => setSelectedEmbedProject(p)}
               onDeleteProject={handleDeleteProject}
               onOpenAdd={() => setIsAddOpen(true)}
@@ -312,6 +360,7 @@ export default function App() {
               projects={projects}
               onToggleStatus={handleToggleStatus}
               onOpenDetails={(p) => setSelectedDetailsProject(p)}
+              onOpenEdit={(p) => setSelectedEditProject(p)}
               onOpenEmbed={(p) => setSelectedEmbedProject(p)}
               onDeleteProject={handleDeleteProject}
               onOpenAdd={() => setIsAddOpen(true)}
@@ -361,11 +410,19 @@ export default function App() {
         onSave={handleSaveNewProject}
       />
 
+      <EditWebsiteModal
+        project={selectedEditProject}
+        isOpen={!!selectedEditProject}
+        onClose={() => setSelectedEditProject(null)}
+        onSave={handleUpdateProject}
+      />
+
       <WebsiteDetailsModal
         project={selectedDetailsProject}
         isOpen={!!selectedDetailsProject}
         onClose={() => setSelectedDetailsProject(null)}
         onToggleStatus={handleToggleStatus}
+        onOpenEdit={(p) => setSelectedEditProject(p)}
         onOpenEmbed={(p) => setSelectedEmbedProject(p)}
       />
 

@@ -13,7 +13,9 @@ import {
   Unlock,
   ExternalLink,
   Calendar,
-  AlertCircle
+  AlertCircle,
+  Edit3,
+  Clock
 } from 'lucide-react';
 
 export default function WebsiteDetailsModal({
@@ -21,6 +23,7 @@ export default function WebsiteDetailsModal({
   isOpen,
   onClose,
   onToggleStatus,
+  onOpenEdit,
   onOpenEmbed
 }) {
   if (!isOpen || !project) return null;
@@ -136,6 +139,18 @@ export default function WebsiteDetailsModal({
               </span>
             </div>
 
+            {project.autoLockEnabled && project.autoLockDate && (
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                <span className="text-amber-400 flex items-center gap-1 font-bold">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>অটো-লক ডেডলাইন:</span>
+                </span>
+                <span className="font-mono text-amber-300 font-bold text-[11px]">
+                  {new Date(project.autoLockDate).toLocaleString()}
+                </span>
+              </div>
+            )}
+
             {project.notes && (
               <div className="pt-2 border-t border-slate-800/80">
                 <span className="text-[10px] text-slate-500 block mb-0.5">নোট:</span>
@@ -145,31 +160,45 @@ export default function WebsiteDetailsModal({
           </div>
 
           {/* Action Buttons */}
-          <div className="pt-3 flex flex-col sm:flex-row items-center gap-3">
-            {/* Kill-switch Toggle */}
-            <button
-              onClick={() => {
-                onToggleStatus(project.id);
-                onClose();
-              }}
-              className={`w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
-                isLocked
-                  ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
-                  : 'bg-rose-500 hover:bg-rose-400 text-white shadow-rose-500/20'
-              }`}
-            >
-              {isLocked ? (
-                <>
-                  <Unlock className="w-4 h-4" />
-                  <span>ওয়েবসাইট আনলক করুন</span>
-                </>
-              ) : (
-                <>
-                  <Lock className="w-4 h-4" />
-                  <span>রিমোট এক্সেস বন্ধ করুন</span>
-                </>
-              )}
-            </button>
+          <div className="pt-3 flex flex-col gap-2.5">
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              {/* Kill-switch Toggle */}
+              <button
+                onClick={() => {
+                  onToggleStatus(project.id);
+                  onClose();
+                }}
+                className={`w-full sm:w-1/2 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 ${
+                  isLocked
+                    ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-emerald-500/20'
+                    : 'bg-rose-500 hover:bg-rose-400 text-white shadow-rose-500/20'
+                }`}
+              >
+                {isLocked ? (
+                  <>
+                    <Unlock className="w-4 h-4" />
+                    <span>ওয়েবসাইট আনলক করুন</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    <span>রিমোট এক্সেস বন্ধ করুন</span>
+                  </>
+                )}
+              </button>
+
+              {/* Edit Modal Opener */}
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenEdit && onOpenEdit(project);
+                }}
+                className="w-full sm:w-1/2 py-3 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-cyan-950/30"
+              >
+                <Edit3 className="w-4 h-4 text-cyan-400" />
+                <span>এডিট ও পেমেন্ট আপডেট</span>
+              </button>
+            </div>
 
             {/* Embed Code Modal Opener */}
             <button
@@ -177,7 +206,7 @@ export default function WebsiteDetailsModal({
                 onClose();
                 onOpenEmbed(project);
               }}
-              className="w-full sm:w-1/2 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition-all"
+              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs flex items-center justify-center gap-2 transition-all"
             >
               <Code className="w-4 h-4 text-cyan-400" />
               <span>ইন্টিগ্রেশন স্ক্রিপ্ট দেখুন</span>
