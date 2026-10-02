@@ -65,6 +65,22 @@ export const INITIAL_PROJECTS = [
     createdAt: Date.now() - 86400000,
     updatedAt: Date.now(),
   },
+  {
+    id: 'wg_galaxygadgets',
+    clientName: 'Galaxy Gadgets BD (গ্যালাক্সি গ্যাজেটস)',
+    domain: 'galaxygadgetsbd.com',
+    planType: 'E-commerce',
+    monthlyPrice: 2000,
+    status: 'ACTIVE', // ACTIVE | LOCKED
+    passkey: 'WG-GG26-PASS',
+    totalBill: 10000,
+    dueAmount: 0,
+    whatsappNumber: '01629559653',
+    contactNumber: '01629559653',
+    notes: 'প্রিমিয়াম গ্যাজেট ও ইলেকট্রনিক্স ই-কমার্স প্ল্যাটফর্ম (Galaxy Gadgets BD)',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  },
 ];
 
 export const getStoredProjects = () => {
